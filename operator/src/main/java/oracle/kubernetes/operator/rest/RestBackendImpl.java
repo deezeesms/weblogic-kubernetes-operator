@@ -134,6 +134,8 @@ public class RestBackendImpl implements RestBackend {
 
   private V1UserInfo authenticate(String accessToken) {
     LOGGER.entering();
+    LOGGER.info("Main.isDedicated: " + Main.isDedicated());
+    LOGGER.info("Main.getOperatorNamespace: " + Main.getOperatorNamespace());
     V1TokenReviewStatus status = atn.check(principal, accessToken,
         Main.isDedicated() ? Main.getOperatorNamespace() : null);
     if (status == null) {

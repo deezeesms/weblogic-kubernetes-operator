@@ -28,6 +28,7 @@ public class AuthenticationProxy {
   public V1TokenReviewStatus check(String principal, String token, String namespace) {
 
     LOGGER.entering(principal); // Don't expose the token since it's a credential
+    LOGGER.info("AuthenticationProxy.check namespace: " +  namespace);
 
     V1TokenReview result = null;
     try {
