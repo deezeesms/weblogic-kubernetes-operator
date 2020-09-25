@@ -157,7 +157,11 @@ public class AuthorizationProxy {
     V1SubjectAccessReview subjectAccessReview = new V1SubjectAccessReview();
     subjectAccessReview.setApiVersion("authorization.k8s.io/v1");
     subjectAccessReview.setKind("SubjectAccessReview");
-    subjectAccessReview.setMetadata(new V1ObjectMeta());
+    V1ObjectMeta meta = new V1ObjectMeta();
+    if (scope == Scope.namespace) {
+      meta.namespace(namespaceName);
+    }
+    subjectAccessReview.setMetadata(meta);
     subjectAccessReview.setSpec(subjectAccessReviewSpec);
     LOGGER.exiting(subjectAccessReview);
     return subjectAccessReview;
