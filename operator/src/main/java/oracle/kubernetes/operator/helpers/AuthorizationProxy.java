@@ -73,6 +73,7 @@ public class AuthorizationProxy {
     V1SubjectAccessReview subjectAccessReview =
         prepareSubjectAccessReview(
             principal, groups, operation, resource, resourceName, scope, namespaceName);
+    LOGGER.info("AuthorizationProxy subjectAccessReview: " + subjectAccessReview);
     try {
       subjectAccessReview = new CallBuilder().createSubjectAccessReview(subjectAccessReview);
     } catch (ApiException e) {
