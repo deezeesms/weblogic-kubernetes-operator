@@ -8,6 +8,7 @@ import java.util.List;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1LocalSubjectAccessReview;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1ObjectMetaBuilder;
 import io.kubernetes.client.openapi.models.V1ResourceAttributes;
 import io.kubernetes.client.openapi.models.V1SelfSubjectAccessReview;
 import io.kubernetes.client.openapi.models.V1SelfSubjectAccessReviewSpec;
@@ -216,7 +217,8 @@ public class AuthorizationProxy {
     V1LocalSubjectAccessReview localSubjectAccessReview = new V1LocalSubjectAccessReview();
     localSubjectAccessReview.setApiVersion("authorization.k8s.io/v1");
     localSubjectAccessReview.setKind("LocalSubjectAccessReview");
-    localSubjectAccessReview.setMetadata(new V1ObjectMeta());
+    localSubjectAccessReview.setMetadata(new V1ObjectMetaBuilder()
+        .withNamespace(namespaceName).build());
     localSubjectAccessReview.setSpec(subjectAccessReviewSpec);
     LOGGER.exiting(localSubjectAccessReview);
     return localSubjectAccessReview;
