@@ -50,6 +50,7 @@ import io.kubernetes.client.openapi.models.V1EventList;
 import io.kubernetes.client.openapi.models.V1Job;
 import io.kubernetes.client.openapi.models.V1JobList;
 import io.kubernetes.client.openapi.models.V1ListMeta;
+import io.kubernetes.client.openapi.models.V1LocalSubjectAccessReview;
 import io.kubernetes.client.openapi.models.V1Namespace;
 import io.kubernetes.client.openapi.models.V1NamespaceList;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
@@ -112,6 +113,7 @@ public class KubernetesTestSupport extends FiberTestSupport {
   public static final String SECRET = "Secret";
   public static final String SERVICE = "Service";
   public static final String SUBJECT_ACCESS_REVIEW = "SubjectAccessReview";
+  public static final String LOCAL_SUBJECT_ACCESS_REVIEW = "LocalSubjectAccessReview";
   public static final String SELF_SUBJECT_ACCESS_REVIEW = "SelfSubjectAccessReview";
   public static final String SELF_SUBJECT_RULES_REVIEW = "SelfSubjectRulesReview";
   public static final String TOKEN_REVIEW = "TokenReview";
@@ -143,6 +145,7 @@ public class KubernetesTestSupport extends FiberTestSupport {
     support(SELF_SUBJECT_ACCESS_REVIEW, V1SelfSubjectAccessReview.class);
     support(SELF_SUBJECT_RULES_REVIEW, V1SubjectRulesReviewStatus.class);
     support(SUBJECT_ACCESS_REVIEW, V1SubjectAccessReview.class);
+    support(LOCAL_SUBJECT_ACCESS_REVIEW, V1LocalSubjectAccessReview.class);
     support(TOKEN_REVIEW, V1TokenReview.class);
     support(PV, V1PersistentVolume.class, this::createPvList);
     support(NAMESPACE, V1Namespace.class, this::createNamespaceList);

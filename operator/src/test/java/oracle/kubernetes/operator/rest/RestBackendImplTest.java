@@ -12,6 +12,7 @@ import javax.ws.rs.WebApplicationException;
 
 import com.meterware.simplestub.Memento;
 import com.meterware.simplestub.StaticStubSupport;
+import io.kubernetes.client.openapi.models.V1LocalSubjectAccessReview;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1SubjectAccessReview;
 import io.kubernetes.client.openapi.models.V1SubjectAccessReviewStatus;
@@ -38,6 +39,7 @@ import org.junit.Test;
 
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static oracle.kubernetes.operator.helpers.KubernetesTestSupport.DOMAIN;
+import static oracle.kubernetes.operator.helpers.KubernetesTestSupport.LOCAL_SUBJECT_ACCESS_REVIEW;
 import static oracle.kubernetes.operator.helpers.KubernetesTestSupport.SUBJECT_ACCESS_REVIEW;
 import static oracle.kubernetes.operator.helpers.KubernetesTestSupport.TOKEN_REVIEW;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -86,6 +88,7 @@ public class RestBackendImplTest {
     testSupport.defineResources(domain, domain2);
     testSupport.doOnCreate(TOKEN_REVIEW, r -> authenticate((V1TokenReview) r));
     testSupport.doOnCreate(SUBJECT_ACCESS_REVIEW, s -> allow((V1SubjectAccessReview) s));
+    testSupport.doOnCreate(LOCAL_SUBJECT_ACCESS_REVIEW, s -> allow((V1LocalSubjectAccessReview) s));
     testSupport.doOnUpdate(DOMAIN, d -> updatedDomain = (Domain) d);
     configSupport.addWlsCluster("cluster1", "ms1", "ms2", "ms3", "ms4", "ms5", "ms6");
     restBackend = new RestBackendImpl("", "", Collections.singletonList(NS));
@@ -99,6 +102,10 @@ public class RestBackendImplTest {
 
   private void allow(V1SubjectAccessReview subjectAccessReview) {
     subjectAccessReview.setStatus(new V1SubjectAccessReviewStatus().allowed(true));
+  }
+
+  private void allow(V1LocalSubjectAccessReview localSubjectAccessReview) {
+    localSubjectAccessReview.setStatus(new V1SubjectAccessReviewStatus().allowed(true));
   }
 
   @After

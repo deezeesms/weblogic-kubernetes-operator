@@ -23,6 +23,7 @@ import io.kubernetes.client.openapi.models.V1CustomResourceDefinition;
 import io.kubernetes.client.openapi.models.V1DeleteOptions;
 import io.kubernetes.client.openapi.models.V1EventList;
 import io.kubernetes.client.openapi.models.V1Job;
+import io.kubernetes.client.openapi.models.V1LocalSubjectAccessReview;
 import io.kubernetes.client.openapi.models.V1Namespace;
 import io.kubernetes.client.openapi.models.V1NamespaceList;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
@@ -441,6 +442,12 @@ public class CallBuilder {
           new AuthorizationV1Api(client)
               .createSubjectAccessReview(
                   (V1SubjectAccessReview) requestParams.body, null, null, pretty));
+  private final SynchronousCallFactory<V1LocalSubjectAccessReview> createLocalSubjectaccessreviewCall =
+      ((client, requestParams) ->
+          new AuthorizationV1Api(client)
+              .createNamespacedLocalSubjectAccessReview(
+                  requestParams.namespace, (V1LocalSubjectAccessReview) requestParams.body,
+                  null, null, pretty));
   private final SynchronousCallFactory<V1SelfSubjectAccessReview> createSelfsubjectacessreviewCall =
       (client, requestParams) ->
           new AuthorizationV1Api(client)
@@ -1722,6 +1729,21 @@ public class CallBuilder {
     RequestParams params =
         new RequestParams("createSubjectAccessReview", null, null, body, callParams);
     return executeSynchronousCall(params, createSubjectaccessreviewCall);
+  }
+
+  /**
+   * Create subject access review.
+   *
+   * @param body Body
+   * @return Created subject access review
+   * @throws ApiException API Exception
+   */
+  public V1LocalSubjectAccessReview createLocalSubjectAccessReview(String namespace,
+      V1LocalSubjectAccessReview body)
+      throws ApiException {
+    RequestParams params =
+        new RequestParams("createLocalSubjectAccessReview", namespace, null, body, callParams);
+    return executeSynchronousCall(params, createLocalSubjectaccessreviewCall);
   }
 
   /* Token Review */

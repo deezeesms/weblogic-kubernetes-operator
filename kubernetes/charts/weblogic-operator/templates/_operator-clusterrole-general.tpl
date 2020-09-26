@@ -34,6 +34,6 @@ rules:
   resources: ["tokenreviews"]
   verbs: ["create"]
 - apiGroups: ["authorization.k8s.io"]
-  resources: ["selfsubjectrulesreviews", "subjectaccessreviews"]
+  resources: ["selfsubjectrulesreviews", "localsubjectaccessreviews", "subjectaccessreviews"]
   verbs: ["create"]
 {{- end }}
