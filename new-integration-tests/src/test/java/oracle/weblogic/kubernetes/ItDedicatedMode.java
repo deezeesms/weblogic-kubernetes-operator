@@ -211,7 +211,7 @@ class ItDedicatedMode {
     logger.info("scaling the cluster from {0} servers to {1} servers", replicaCount, replicaCount + 1);
     scaleAndVerifyCluster(clusterName, domainUid, domain1Namespace,
         managedServerPodPrefix, replicaCount, replicaCount + 1,
-        true, externalRestHttpsPort, opNamespace, opNamespace + "-sa",
+        true, externalRestHttpsPort, opNamespace, "default",
         false, "", "", 0, "",
         "", null, null);
   }
