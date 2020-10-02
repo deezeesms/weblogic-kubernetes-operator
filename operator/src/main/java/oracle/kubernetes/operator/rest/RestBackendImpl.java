@@ -52,12 +52,12 @@ import static oracle.kubernetes.operator.logging.MessageKeys.INVALID_DOMAIN_UID;
  */
 public class RestBackendImpl implements RestBackend {
 
-  private static final LoggingFacade LOGGER = LoggingFactory.getLogger("Operator", "Operator");
-  private static final String NEW_CLUSTER_REPLICAS =
+  protected static final LoggingFacade LOGGER = LoggingFactory.getLogger("Operator", "Operator");
+  protected static final String NEW_CLUSTER_REPLICAS =
       "{'clusterName':'%s','replicas':%d}".replaceAll("'", "\"");
   private static final String NEW_CLUSTER_RESTART =
       "{'clusterName':'%s','restartVersion':'1'}".replaceAll("'", "\"");
-  public static final String INITIAL_VERSION = "1";
+  protected static final String INITIAL_VERSION = "1";
 
   @SuppressWarnings("FieldMayBeFinal") // used by unit test
   private static TopologyRetriever INSTANCE =
@@ -72,7 +72,7 @@ public class RestBackendImpl implements RestBackend {
   private final AuthenticationProxy atn = new AuthenticationProxy();
   private final AuthorizationProxy atz = new AuthorizationProxy();
   private final String principal;
-  private final Collection<String> domainNamespaces;
+  protected final Collection<String> domainNamespaces;
   private V1UserInfo userInfo;
 
   /**
@@ -93,7 +93,12 @@ public class RestBackendImpl implements RestBackend {
     LOGGER.exiting();
   }
 
-  private void authorize(String domainUid, Operation operation) {
+  protected RestBackendImpl(Collection<String> domainNamespaces) {
+    this.principal = null;
+    this.domainNamespaces = domainNamespaces;
+  }
+
+  protected void authorize(String domainUid, Operation operation) {
     LOGGER.entering(domainUid, operation);
     boolean authorized;
     if (domainUid == null) {
@@ -178,7 +183,7 @@ public class RestBackendImpl implements RestBackend {
     return result;
   }
 
-  private List<Domain> getDomainsList() {
+  protected List<Domain> getDomainsList() {
     Collection<List<Domain>> c = new ArrayList<>();
     try {
       for (String ns : domainNamespaces) {
@@ -216,7 +221,7 @@ public class RestBackendImpl implements RestBackend {
     }
   }
 
-  private void verifyDomain(String domainUid) {
+  protected void verifyDomain(String domainUid) {
     if (!isDomainUid(domainUid)) {
       throw new WebApplicationException(LOGGER.formatMessage(INVALID_DOMAIN_UID, domainUid), Status.BAD_REQUEST);
     }
@@ -255,7 +260,7 @@ public class RestBackendImpl implements RestBackend {
     patchDomain(domain, patchBuilder);
   }
 
-  private void forDomainDo(String domainUid, Consumer<Domain> consumer) {
+  protected void forDomainDo(String domainUid, Consumer<Domain> consumer) {
     if (domainUid == null) {
       throw new AssertionError(LOGGER.formatMessage(MessageKeys.NULL_DOMAIN_UID));
     }
@@ -314,7 +319,7 @@ public class RestBackendImpl implements RestBackend {
     patchClusterReplicas(domain, cluster, managedServerCount);
   }
 
-  private void patchClusterReplicas(Domain domain, String cluster, int replicas) {
+  protected void patchClusterReplicas(Domain domain, String cluster, int replicas) {
     if (replicas == domain.getReplicaCount(cluster)) {
       return;
     }
@@ -330,7 +335,7 @@ public class RestBackendImpl implements RestBackend {
     patchDomain(domain, patchBuilder);
   }
 
-  private void patchDomain(Domain domain, JsonPatchBuilder patchBuilder) {
+  protected void patchDomain(Domain domain, JsonPatchBuilder patchBuilder) {
     try {
       new CallBuilder()
           .patchDomain(
@@ -370,11 +375,11 @@ public class RestBackendImpl implements RestBackend {
     }
   }
 
-  private WlsClusterConfig getWlsClusterConfig(String domainUid, String cluster) {
+  protected WlsClusterConfig getWlsClusterConfig(String domainUid, String cluster) {
     return getWlsDomainConfig(domainUid).getClusterConfig(cluster);
   }
 
-  private Map<String, WlsClusterConfig> getWlsConfiguredClusters(String domainUid) {
+  protected Map<String, WlsClusterConfig> getWlsConfiguredClusters(String domainUid) {
     return getWlsDomainConfig(domainUid).getClusterConfigs();
   }
 
@@ -395,22 +400,22 @@ public class RestBackendImpl implements RestBackend {
     return new WlsDomainConfig(null);
   }
 
-  private WebApplicationException handleApiException(ApiException e) {
+  protected WebApplicationException handleApiException(ApiException e) {
     // TBD - what about e.getResponseHeaders?
     return createWebApplicationException(e.getCode(), e.getResponseBody());
   }
 
-  private WebApplicationException createWebApplicationException(
+  protected WebApplicationException createWebApplicationException(
       Status status, String msgId, Object... params) {
     String msg = LOGGER.formatMessage(msgId, params);
     return createWebApplicationException(status, msg);
   }
 
-  private WebApplicationException createWebApplicationException(Status status, String msg) {
+  protected WebApplicationException createWebApplicationException(Status status, String msg) {
     return createWebApplicationException(status.getStatusCode(), msg);
   }
 
-  private WebApplicationException createWebApplicationException(int status, String msg) {
+  protected WebApplicationException createWebApplicationException(int status, String msg) {
     ResponseBuilder rb = Response.status(status);
     if (msg != null) {
       rb.entity(msg);

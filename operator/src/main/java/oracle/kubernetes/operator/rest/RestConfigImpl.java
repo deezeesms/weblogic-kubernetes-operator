@@ -5,6 +5,7 @@ package oracle.kubernetes.operator.rest;
 
 import java.util.Collection;
 
+import oracle.kubernetes.operator.Main;
 import oracle.kubernetes.operator.logging.LoggingFacade;
 import oracle.kubernetes.operator.logging.LoggingFactory;
 import oracle.kubernetes.operator.rest.backend.RestBackend;
@@ -90,7 +91,9 @@ public class RestConfigImpl implements RestConfig {
   @Override
   public RestBackend getBackend(String accessToken) {
     LOGGER.entering();
-    RestBackend result = new RestBackendImpl(principal, accessToken, domainNamespaces);
+    RestBackend result = (Main.isDedicated())
+        ? new DedicatedModeRestBackendImpl(accessToken, domainNamespaces)
+        : new RestBackendImpl(principal, accessToken, domainNamespaces);
     LOGGER.exiting();
     return result;
   }
