@@ -402,6 +402,7 @@ public class RestBackendImpl implements RestBackend {
 
   protected WebApplicationException handleApiException(ApiException e) {
     // TBD - what about e.getResponseHeaders?
+    System.out.println("RestBackendImpl.handleApiException e: " + e);
     return createWebApplicationException(e.getCode(), e.getResponseBody());
   }
 

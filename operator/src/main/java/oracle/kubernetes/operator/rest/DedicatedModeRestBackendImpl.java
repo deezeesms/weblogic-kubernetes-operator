@@ -71,6 +71,7 @@ public class DedicatedModeRestBackendImpl extends RestBackendImpl {
   }
 
   protected List<Domain> getDomainsList() {
+    System.out.println("DedicatedModeRestBackendImpl getDomainsList");
     Collection<List<Domain>> c = new ArrayList<>();
     try {
       for (String ns : domainNamespaces) {
