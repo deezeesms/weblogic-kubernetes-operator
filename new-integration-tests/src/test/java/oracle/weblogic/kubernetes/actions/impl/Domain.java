@@ -347,6 +347,73 @@ public class Domain {
   }
 
   /**
+   * List Domains with Operator REST API.
+   *
+   * @param externalRestHttpsPort node port allocated for the external operator REST HTTPS interface
+   * @param namespace namespace of WebLogic operator
+   * @param serviceAccount the service account for operator
+   * @return true if REST call succeeds, false otherwise
+   */
+  public static boolean listDomainsWithRestApi(
+      int externalRestHttpsPort,
+      String namespace,
+      String serviceAccount) {
+    LoggingFacade logger = getLogger();
+
+    logger.info("Getting the secret of service account {0} in namespace {1}", serviceAccount, namespace);
+    String secretName = Secret.getSecretOfServiceAccount(namespace, serviceAccount);
+    if (secretName.isEmpty()) {
+      logger.info("Did not find secret of service account {0} in namespace {1}", serviceAccount, namespace);
+      return false;
+    }
+    logger.info("Got secret {0} of service account {1} in namespace {2}",
+        secretName, serviceAccount, namespace);
+
+    logger.info("Getting service account token stored in secret {0} to authenticate as service account {1}"
+        + " in namespace {2}", secretName, serviceAccount, namespace);
+    String secretToken = Secret.getSecretEncodedToken(namespace, secretName);
+    if (secretToken.isEmpty()) {
+      logger.info("Did not get encoded token for secret {0} associated with service account {1} in namespace {2}",
+          secretName, serviceAccount, namespace);
+      return false;
+    }
+    logger.info("Got encoded token for secret {0} associated with service account {1} in namespace {2}: {3}",
+        secretName, serviceAccount, namespace, secretToken);
+
+    // decode the secret encoded token
+    String decodedToken = new String(Base64.getDecoder().decode(secretToken));
+    logger.info("Got decoded token for secret {0} associated with service account {1} in namespace {2}: {3}",
+        secretName, serviceAccount, namespace, decodedToken);
+
+    // build the curl command to scale the cluster
+    String command = new StringBuffer()
+        .append("curl --noproxy '*' -v -k ")
+        .append("-H \"Authorization:Bearer ")
+        .append(decodedToken)
+        .append("\" ")
+        .append("-H Accept:application/json ")
+        .append("-H Content-Type:application/json ")
+        .append("-H X-Requested-By:MyClient ")
+        .append("-X GET https://")
+        .append(K8S_NODEPORT_HOST)
+        .append(":")
+        .append(externalRestHttpsPort)
+        .append("/operator/latest/domains").toString();
+
+    CommandParams params = Command
+        .defaultCommandParams()
+        .command(command)
+        .saveResults(true)
+        .redirect(true)
+        .verbose(true);
+
+    logger.info("Calling list domain on Operator REST interface with command: " + command);
+
+    boolean result = Command.withParams(params).execute();
+    return result;
+  }
+
+  /**
    * Scale the cluster of the domain in the specified namespace with WLDF.
    *
    * @param clusterName name of the WebLogic cluster to be scaled in the domain
