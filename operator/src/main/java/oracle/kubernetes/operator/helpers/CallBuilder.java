@@ -474,6 +474,10 @@ public class CallBuilder {
     this.helper = helper;
   }
 
+  public CallBuilder(ClientPool pool) {
+    this(getCallBuilderTuning(), pool);
+  }
+
   private static CallBuilderTuning getCallBuilderTuning() {
     return Optional.ofNullable(TuningParameters.getInstance())
         .map(TuningParameters::getCallBuilderTuning)
@@ -488,6 +492,10 @@ public class CallBuilder {
    */
   static CallBuilder create(CallBuilderTuning tuning) {
     return new CallBuilder(tuning, ClientPool.getInstance());
+  }
+
+  static CallBuilder create(ClientPool pool) {
+    return new CallBuilder(pool);
   }
 
   /* Pods */
@@ -511,7 +519,7 @@ public class CallBuilder {
   static void resetStepFactory() {
     STEP_FACTORY = DEFAULT_STEP_FACTORY;
   }
-
+  
   /**
    * Consumer for label selectors.
    * @param selectors Label selectors

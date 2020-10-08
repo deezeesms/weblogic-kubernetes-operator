@@ -4,10 +4,8 @@
 package oracle.kubernetes.operator.helpers;
 
 import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.openapi.models.V1ObjectMetaBuilder;
 import io.kubernetes.client.openapi.models.V1TokenReview;
-import io.kubernetes.client.openapi.models.V1TokenReviewBuilder;
-import io.kubernetes.client.openapi.models.V1TokenReviewSpecBuilder;
+import io.kubernetes.client.openapi.models.V1TokenReviewSpec;
 import io.kubernetes.client.openapi.models.V1TokenReviewStatus;
 import oracle.kubernetes.operator.logging.LoggingFacade;
 import oracle.kubernetes.operator.logging.LoggingFactory;
@@ -59,17 +57,6 @@ public class AuthenticationProxy {
   }
 
   private V1TokenReview prepareTokenReview(String token, String namespace) {
-    V1TokenReviewBuilder tokenReviewBuilder = new V1TokenReviewBuilder();
-    if (namespace != null) {
-      // namespace scope
-      tokenReviewBuilder.withMetadata(new V1ObjectMetaBuilder()
-          .withNamespace(namespace).build());
-    }
-
-    return tokenReviewBuilder.withSpec(
-        new V1TokenReviewSpecBuilder()
-            .withToken(token).build())
-        .build();
-    //return new V1TokenReview().spec(new V1TokenReviewSpec().token(token));
+    return new V1TokenReview().spec(new V1TokenReviewSpec().token(token));
   }
 }

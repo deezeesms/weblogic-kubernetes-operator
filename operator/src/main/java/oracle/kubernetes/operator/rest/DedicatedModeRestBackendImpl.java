@@ -22,6 +22,9 @@ import oracle.kubernetes.operator.builders.CallParamsImpl;
 import oracle.kubernetes.operator.calls.RequestParams;
 import oracle.kubernetes.operator.calls.SynchronousCallFactory;
 import oracle.kubernetes.operator.helpers.AuthorizationProxy.Operation;
+import oracle.kubernetes.operator.helpers.CallBuilder;
+import oracle.kubernetes.operator.helpers.CallBuilderFactory;
+import oracle.kubernetes.operator.helpers.ClientPool;
 import oracle.kubernetes.weblogic.domain.api.WeblogicApi;
 import oracle.kubernetes.weblogic.domain.model.Domain;
 import oracle.kubernetes.weblogic.domain.model.DomainList;
@@ -35,7 +38,8 @@ import org.apache.commons.lang.ArrayUtils;
  */
 public class DedicatedModeRestBackendImpl extends RestBackendImpl {
 
-  private RestUserCallBuilder callBuilder;
+  //private RestUserCallBuilder callBuilder;
+  private CallBuilder callBuilder;
 
   /**
    * Construct a RestBackendImpl that is used to handle one WebLogic operator REST request.
@@ -48,7 +52,11 @@ public class DedicatedModeRestBackendImpl extends RestBackendImpl {
   DedicatedModeRestBackendImpl(String accessToken, Collection<String> domainNamespaces) {
     super(domainNamespaces);
     LOGGER.entering(domainNamespaces);
-    callBuilder = new RestUserCallBuilderFactory().create(createApiClient(accessToken));
+    ApiClient apiClient = createApiClient(accessToken);
+    ClientPool pool = new ClientPool();
+    pool.setApiClient(apiClient);
+    callBuilder = new CallBuilderFactory().create(pool);
+    //callBuilder = new RestUserCallBuilderFactory().create(apiClient);
     System.out.println("DedicatedModeRestBackendImpl callBuilder: " + callBuilder);
     LOGGER.exiting();
   }
@@ -188,11 +196,10 @@ public class DedicatedModeRestBackendImpl extends RestBackendImpl {
     /**
      * Creates instance that will acquire clients as needed from the {@link ApiClient} instance.
      *
-     * @param tuning Tuning parameters
      * @return Call builder
      */
-    static RestUserCallBuilder create(CallBuilderTuning tuning, ApiClient client) {
-      return new RestUserCallBuilder(tuning, client);
+    static RestUserCallBuilder create(ApiClient client) {
+      return new RestUserCallBuilder(client);
     }
 
     private <T> T executeSynchronousCall(
@@ -239,7 +246,7 @@ public class DedicatedModeRestBackendImpl extends RestBackendImpl {
     }
 
     public RestUserCallBuilder create(ApiClient client) {
-      return RestUserCallBuilder.create(tuning != null ? tuning.getCallBuilderTuning() : null, client);
+      return RestUserCallBuilder.create(client);
     }
   }
 

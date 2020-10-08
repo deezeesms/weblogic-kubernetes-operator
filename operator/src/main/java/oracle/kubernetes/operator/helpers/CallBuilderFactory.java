@@ -15,4 +15,8 @@ public class CallBuilderFactory {
   public CallBuilder create() {
     return CallBuilder.create(tuning != null ? tuning.getCallBuilderTuning() : null);
   }
+
+  public CallBuilder create(ClientPool pool) {
+    return CallBuilder.create(pool);
+  }
 }
