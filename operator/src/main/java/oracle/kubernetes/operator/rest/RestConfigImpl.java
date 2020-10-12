@@ -90,9 +90,6 @@ public class RestConfigImpl implements RestConfig {
   @Override
   public RestBackend getBackend(String accessToken) {
     LOGGER.entering();
-    //RestBackend result = (Main.isDedicated())
-    //    ? new DedicatedModeRestBackendImpl(accessToken, domainNamespaces)
-    //    : new RestBackendImpl(principal, accessToken, domainNamespaces);
     RestBackend result = new RestBackendImpl(principal, accessToken, domainNamespaces);
     LOGGER.exiting();
     return result;

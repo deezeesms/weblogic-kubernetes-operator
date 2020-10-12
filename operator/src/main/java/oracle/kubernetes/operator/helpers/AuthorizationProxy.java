@@ -6,9 +6,7 @@ package oracle.kubernetes.operator.helpers;
 import java.util.List;
 
 import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.openapi.models.V1LocalSubjectAccessReview;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
-import io.kubernetes.client.openapi.models.V1ObjectMetaBuilder;
 import io.kubernetes.client.openapi.models.V1ResourceAttributes;
 import io.kubernetes.client.openapi.models.V1SelfSubjectAccessReview;
 import io.kubernetes.client.openapi.models.V1SelfSubjectAccessReviewSpec;
@@ -72,39 +70,18 @@ public class AuthorizationProxy {
       Scope scope,
       String namespaceName) {
     LOGGER.entering();
-    Boolean result;
-    if (scope == Scope.cluster) {
-      V1SubjectAccessReview subjectAccessReview =
-          prepareSubjectAccessReview(
-              principal, groups, operation, resource, resourceName, scope, namespaceName);
-      LOGGER.info("AuthorizationProxy subjectAccessReview: " + subjectAccessReview);
-      try {
-        subjectAccessReview = new CallBuilder().createSubjectAccessReview(subjectAccessReview);
-      } catch (ApiException e) {
-        LOGGER.severe(MessageKeys.APIEXCEPTION_FROM_SUBJECT_ACCESS_REVIEW, e);
-        LOGGER.exiting(Boolean.FALSE);
-        return Boolean.FALSE;
-      }
-      V1SubjectAccessReviewStatus subjectAccessReviewStatus = subjectAccessReview.getStatus();
-      result = subjectAccessReviewStatus.getAllowed();
-    } else {
-      // LocalSubjectAccessReview - Like SubjectAccessReview but restricted to a specific namespace.
-      V1LocalSubjectAccessReview localSubjectAccessReview =
-          prepareLocalSubjectAccessReview(
-              principal, groups, operation, resource, resourceName, scope, namespaceName);
-      LOGGER.info("AuthorizationProxy localSubjectAccessReview: " + localSubjectAccessReview);
-      try {
-        localSubjectAccessReview = new CallBuilder()
-            .createLocalSubjectAccessReview(namespaceName, localSubjectAccessReview);
-      } catch (ApiException e) {
-        LOGGER.severe(MessageKeys.APIEXCEPTION_FROM_SUBJECT_ACCESS_REVIEW, e);
-        LOGGER.exiting(Boolean.FALSE);
-        return Boolean.FALSE;
-      }
-      V1SubjectAccessReviewStatus subjectAccessReviewStatus = localSubjectAccessReview.getStatus();
-      result = subjectAccessReviewStatus.getAllowed();
+    V1SubjectAccessReview subjectAccessReview =
+        prepareSubjectAccessReview(
+            principal, groups, operation, resource, resourceName, scope, namespaceName);
+    try {
+      subjectAccessReview = new CallBuilder().createSubjectAccessReview(subjectAccessReview);
+    } catch (ApiException e) {
+      LOGGER.severe(MessageKeys.APIEXCEPTION_FROM_SUBJECT_ACCESS_REVIEW, e);
+      LOGGER.exiting(Boolean.FALSE);
+      return Boolean.FALSE;
     }
-
+    V1SubjectAccessReviewStatus subjectAccessReviewStatus = subjectAccessReview.getStatus();
+    Boolean result = subjectAccessReviewStatus.getAllowed();
     LOGGER.exiting(result);
     return result;
   }
@@ -183,45 +160,6 @@ public class AuthorizationProxy {
     subjectAccessReview.setSpec(subjectAccessReviewSpec);
     LOGGER.exiting(subjectAccessReview);
     return subjectAccessReview;
-  }
-
-  /**
-   * Prepares an instance of LocalSubjectAccessReview and returns same.
-   *
-   * @param principal The user, group or service account.
-   * @param groups The groups that principal is a member of.
-   * @param operation The operation to be authorized.
-   * @param resource The kind of resource on which the operation is to be authorized.
-   * @param resourceName The name of the resource instance on which the operation is to be
-   *     authorized.
-   * @param scope The scope of the operation (cluster or namespace).
-   * @param namespaceName name of the namespace if scope is namespace else null.
-   * @return an instance of LocalSubjectAccessReview.
-   */
-  private V1LocalSubjectAccessReview prepareLocalSubjectAccessReview(
-      String principal,
-      final List<String> groups,
-      Operation operation,
-      Resource resource,
-      String resourceName,
-      Scope scope,
-      String namespaceName) {
-    LOGGER.entering();
-    V1SubjectAccessReviewSpec subjectAccessReviewSpec = new V1SubjectAccessReviewSpec();
-
-    subjectAccessReviewSpec.setUser(principal);
-    subjectAccessReviewSpec.setGroups(groups);
-    subjectAccessReviewSpec.setResourceAttributes(
-        prepareResourceAttributes(operation, resource, resourceName, scope, namespaceName));
-
-    V1LocalSubjectAccessReview localSubjectAccessReview = new V1LocalSubjectAccessReview();
-    localSubjectAccessReview.setApiVersion("authorization.k8s.io/v1");
-    localSubjectAccessReview.setKind("LocalSubjectAccessReview");
-    localSubjectAccessReview.setMetadata(new V1ObjectMetaBuilder()
-        .withNamespace(namespaceName).build());
-    localSubjectAccessReview.setSpec(subjectAccessReviewSpec);
-    LOGGER.exiting(localSubjectAccessReview);
-    return localSubjectAccessReview;
   }
 
   private V1SelfSubjectAccessReview prepareSelfSubjectAccessReview(

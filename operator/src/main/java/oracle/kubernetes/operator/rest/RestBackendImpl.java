@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.json.Json;
@@ -58,12 +59,12 @@ import static oracle.kubernetes.operator.logging.MessageKeys.INVALID_DOMAIN_UID;
  */
 public class RestBackendImpl implements RestBackend {
 
-  protected static final LoggingFacade LOGGER = LoggingFactory.getLogger("Operator", "Operator");
-  protected static final String NEW_CLUSTER_REPLICAS =
+  private static final LoggingFacade LOGGER = LoggingFactory.getLogger("Operator", "Operator");
+  private static final String NEW_CLUSTER_REPLICAS =
       "{'clusterName':'%s','replicas':%d}".replaceAll("'", "\"");
   private static final String NEW_CLUSTER_RESTART =
       "{'clusterName':'%s','restartVersion':'1'}".replaceAll("'", "\"");
-  protected static final String INITIAL_VERSION = "1";
+  public static final String INITIAL_VERSION = "1";
 
   @SuppressWarnings("FieldMayBeFinal") // used by unit test
   private static TopologyRetriever INSTANCE =
@@ -76,11 +77,12 @@ public class RestBackendImpl implements RestBackend {
       };
 
   private final AuthenticationProxy atn = new AuthenticationProxy();
-  private final AuthorizationProxy atz = new AuthorizationProxy();
+  private AuthorizationProxy atz = new AuthorizationProxy();
   private final String principal;
-  protected final Collection<String> domainNamespaces;
+  private final Collection<String> domainNamespaces;
   private V1UserInfo userInfo;
   private CallBuilder callBuilder;
+  private static Function<String,String> getEnvVariable = System::getenv;
 
   /**
    * Construct a RestBackendImpl that is used to handle one WebLogic operator REST request.
@@ -101,24 +103,18 @@ public class RestBackendImpl implements RestBackend {
   }
 
   private void initializeCallBuilder(String accessToken) {
-    if (Main.isDedicated()) {
+    if (authenticateWithTokenReview()) {
+      userInfo = authenticate(accessToken);
+      callBuilder = new CallBuilderFactory().create();
+    } else {
       ClientPool pool = new ClientPool();
       pool.setApiClient(createApiClient(accessToken));
       userInfo = null;
       callBuilder = new CallBuilderFactory().create(pool);
-    } else {
-      userInfo = authenticate(accessToken);
-      callBuilder = new CallBuilderFactory().create();
     }
   }
 
-  protected RestBackendImpl(Collection<String> domainNamespaces) {
-    this.principal = null;
-    this.domainNamespaces = domainNamespaces;
-  }
-
-  protected ApiClient createApiClient(String accessToken) {
-    LOGGER.entering();
+  private ApiClient createApiClient(String accessToken) {
     AccessTokenAuthentication authentication = new AccessTokenAuthentication(accessToken);
     ClientBuilder builder = null;
     try {
@@ -130,9 +126,9 @@ public class RestBackendImpl implements RestBackend {
     }
   }
 
-  protected void authorize(String domainUid, Operation operation) {
+  private void authorize(String domainUid, Operation operation) {
     LOGGER.entering(domainUid, operation);
-    if (userInfo == null) {
+    if (!authenticateWithTokenReview()) {
       return;
     }
     boolean authorized;
@@ -174,8 +170,6 @@ public class RestBackendImpl implements RestBackend {
 
   private V1UserInfo authenticate(String accessToken) {
     LOGGER.entering();
-    LOGGER.info("Main.isDedicated: " + Main.isDedicated());
-    LOGGER.info("Main.getOperatorNamespace: " + Main.getOperatorNamespace());
     V1TokenReviewStatus status = atn.check(principal, accessToken,
         Main.isDedicated() ? Main.getOperatorNamespace() : null);
     if (status == null) {
@@ -218,7 +212,7 @@ public class RestBackendImpl implements RestBackend {
     return result;
   }
 
-  protected List<Domain> getDomainsList() {
+  private List<Domain> getDomainsList() {
     Collection<List<Domain>> c = new ArrayList<>();
     try {
       for (String ns : domainNamespaces) {
@@ -256,7 +250,7 @@ public class RestBackendImpl implements RestBackend {
     }
   }
 
-  protected void verifyDomain(String domainUid) {
+  private void verifyDomain(String domainUid) {
     if (!isDomainUid(domainUid)) {
       throw new WebApplicationException(LOGGER.formatMessage(INVALID_DOMAIN_UID, domainUid), Status.BAD_REQUEST);
     }
@@ -295,7 +289,7 @@ public class RestBackendImpl implements RestBackend {
     patchDomain(domain, patchBuilder);
   }
 
-  protected void forDomainDo(String domainUid, Consumer<Domain> consumer) {
+  private void forDomainDo(String domainUid, Consumer<Domain> consumer) {
     if (domainUid == null) {
       throw new AssertionError(LOGGER.formatMessage(MessageKeys.NULL_DOMAIN_UID));
     }
@@ -354,7 +348,7 @@ public class RestBackendImpl implements RestBackend {
     patchClusterReplicas(domain, cluster, managedServerCount);
   }
 
-  protected void patchClusterReplicas(Domain domain, String cluster, int replicas) {
+  private void patchClusterReplicas(Domain domain, String cluster, int replicas) {
     if (replicas == domain.getReplicaCount(cluster)) {
       return;
     }
@@ -370,7 +364,7 @@ public class RestBackendImpl implements RestBackend {
     patchDomain(domain, patchBuilder);
   }
 
-  protected void patchDomain(Domain domain, JsonPatchBuilder patchBuilder) {
+  private void patchDomain(Domain domain, JsonPatchBuilder patchBuilder) {
     try {
       callBuilder
           .patchDomain(
@@ -410,11 +404,11 @@ public class RestBackendImpl implements RestBackend {
     }
   }
 
-  protected WlsClusterConfig getWlsClusterConfig(String domainUid, String cluster) {
+  private WlsClusterConfig getWlsClusterConfig(String domainUid, String cluster) {
     return getWlsDomainConfig(domainUid).getClusterConfig(cluster);
   }
 
-  protected Map<String, WlsClusterConfig> getWlsConfiguredClusters(String domainUid) {
+  private Map<String, WlsClusterConfig> getWlsConfiguredClusters(String domainUid) {
     return getWlsDomainConfig(domainUid).getClusterConfigs();
   }
 
@@ -435,28 +429,36 @@ public class RestBackendImpl implements RestBackend {
     return new WlsDomainConfig(null);
   }
 
-  protected WebApplicationException handleApiException(ApiException e) {
+  private WebApplicationException handleApiException(ApiException e) {
     // TBD - what about e.getResponseHeaders?
-    System.out.println("RestBackendImpl.handleApiException e: " + e);
     return createWebApplicationException(e.getCode(), e.getResponseBody());
   }
 
-  protected WebApplicationException createWebApplicationException(
+  private WebApplicationException createWebApplicationException(
       Status status, String msgId, Object... params) {
     String msg = LOGGER.formatMessage(msgId, params);
     return createWebApplicationException(status, msg);
   }
 
-  protected WebApplicationException createWebApplicationException(Status status, String msg) {
+  private WebApplicationException createWebApplicationException(Status status, String msg) {
     return createWebApplicationException(status.getStatusCode(), msg);
   }
 
-  protected WebApplicationException createWebApplicationException(int status, String msg) {
+  private WebApplicationException createWebApplicationException(int status, String msg) {
     ResponseBuilder rb = Response.status(status);
     if (msg != null) {
       rb.entity(msg);
     }
     return new WebApplicationException(rb.build());
+  }
+
+  protected boolean authenticateWithTokenReview() {
+    return "true".equalsIgnoreCase(Optional.ofNullable(getEnvVariable.apply("TOKEN_REVIEW_AUTHENTICATION"))
+        .orElse("false"));
+  }
+
+  protected V1UserInfo getUserInfo() {
+    return userInfo;
   }
 
   interface TopologyRetriever {
